@@ -1,3 +1,4 @@
+Khenda Stajı Boyunca oluşturduğumuz:
 "# vDetect-ocr-app" 
 
 Çalıştırmak için ise oluşturduğunuz sanal ortamda;

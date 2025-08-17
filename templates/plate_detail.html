@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Plaka Detayı: {{ plate_text }}</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; background-color: #f4f7f6; color: #333; line-height: 1.6; }
+        .container { max-width: 90%; margin: 40px auto; padding: 25px; background-color: #fff; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; font-size: 2.2em; }
+        .back-btn { display: inline-block; margin-bottom: 20px; padding: 12px 25px; font-weight: 600; text-decoration: none; border: none; border-radius: 7px; cursor: pointer; transition: background-color 0.25s ease, transform 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: white; background-color: #6c757d; }
+        .back-btn:hover { background-color: #5a6268; transform: translateY(-2px); }
+        table { width: 100%; border-collapse: collapse; margin-top: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-radius: 8px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        th { background-color: #34495e; color: white; text-transform: uppercase; letter-spacing: 0.05em; }
+        tr:nth-child(even) { background-color: #f8f8f8; }
+        tr:hover { background-color: #f1f1f1; }
+        img { max-width: 250px; height: auto; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .no-image-placeholder { color: #999; font-style: italic; font-size: 0.9em; }
+        .low-confidence { background-color: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Plaka Detayı: {{ plate_text }}</h1>
+        
+        <a href="{{ url_for('results', video_id=detections[0][1]) }}" class="back-btn">Geri Dön</a>
+
+        {% if detections %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Video Adı</th>
+                        <th>Plaka Görseli</th>
+                        <th>Araç Görseli</th>
+                        <th>Tespit Zamanı</th>
+                        <th>Güven Skoru</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detection in detections %}
+                    <tr class="{{ 'low-confidence' if detection[4] < 0.7 else '' }}">
+                        <td>{{ detection[1] }}</td>
+                        <td>
+                            {% if detection[6] %}
+                            <img src="{{ url_for('plate_output_file', filename=detection[6].replace('static/plate_vehicle_outputs/', '')) }}" alt="Plaka Görseli" />
+                            {% else %}
+                            <span class="no-image-placeholder">Görsel Yok</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if detection[7] %}
+                            <img src="{{ url_for('plate_output_file', filename=detection[7].replace('static/plate_vehicle_outputs/', '')) }}" alt="Araç Görseli" />
+                            {% else %}
+                            <span class="no-image-placeholder">Görsel Yok</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ detection[5] }}</td>
+                        <td>{{ "%.2f"|format(detection[4]) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Bu plakaya ait detaylı bilgi bulunamadı.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

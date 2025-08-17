@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Video Yükleme</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: #f9fafb;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgb(0 0 0 / 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
+        }
+        form {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        input[type="file"] {
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 1rem;
+            cursor: pointer;
+            flex-grow: 1;
+        }
+        button {
+            background-color: #3498db;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 1rem;
+        }
+        button:disabled {
+            background-color: #7fb9e8;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+
+        .flashes {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+            text-align: center;
+            font-weight: 600;
+            color: #27ae60;
+            font-size: 1.1rem;
+        }
+
+        .upload-progress {
+            display: none;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 500;
+            color: #2980b9;
+        }
+        .upload-progress .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1.5s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .video-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .video-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ecf0f1;
+            padding: 12px 18px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 2px 6px rgb(0 0 0 / 0.05);
+        }
+        .video-item:hover {
+            background: #d0e6f9;
+        }
+        .video-item span {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .video-actions {
+            display: flex;
+            align-items: center;
+        }
+        .video-actions a {
+            text-decoration: none;
+            color: #2980b9;
+            margin-left: 15px;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        .video-actions a:hover {
+            color: #1b4f72;
+            text-decoration: underline;
+        }
+
+        .delete-button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin-left: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+
+        .delete-button:hover {
+            background: #c0392b;
+        }
+
+        .back-home {
+            display: block;
+            text-align: center;
+            margin-top: 30px;
+            font-weight: 600;
+            color: #34495e;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .back-home:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Video Yükle</h1>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <form id="upload-form" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" novalidate>
+            <input type="file" name="file" id="video-file-input" accept="video/*" required />
+            <button type="submit" id="upload-button">Yükle</button>
+        </form>
+
+        <div id="upload-progress-container" class="upload-progress">
+            <span class="loader"></span>
+            <span>Video yükleniyor...</span>
+        </div>
+
+        <h2>Yüklenen Videolar</h2>
+        <ul id="video-list" class="video-list">
+            {% if videos %}
+                {% for video in videos %}
+                    <li class="video-item">
+                        <span>{{ video[1] }}</span>
+                        <div class="video-actions">
+                            <a href="{{ url_for('select_roi', video_id=video[0]) }}">ROI Belirle</a>
+                            <a href="{{ url_for('analyze_video', video_id=video[0]) }}">Analizi Başlat</a>
+                            <a href="{{ url_for('results', video_id=video[0]) }}">Sonuçları Görüntüle</a>
+                            <form action="{{ url_for('delete_video', video_id=video[0]) }}" method="post" onsubmit="return confirm('Bu videoyu silmek istediğinize emin misiniz?')" style="display:inline;">
+                                <button type="submit" class="delete-button">Sil</button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            {% else %}
+                <li>Henüz yüklenmiş video bulunmamaktadır.</li>
+            {% endif %}
+        </ul>
+
+        <a href="{{ url_for('home') }}" class="back-home">← Ana Sayfaya Dön</a>
+    </div>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const uploadButton = document.getElementById('upload-button');
+        const progressContainer = document.getElementById('upload-progress-container');
+
+        form.addEventListener('submit', function(e) {
+            uploadButton.disabled = true;
+            uploadButton.textContent = 'Yükleniyor...';
+            progressContainer.style.display = 'block';
+        });
+    </script>
+</body>
+</html>

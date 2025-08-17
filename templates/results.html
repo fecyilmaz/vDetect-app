@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Analiz Sonuçları</title>
+    <style>
+        /* Ana konteyner ve başlık stilleri */
+        body { font-family: 'Arial', sans-serif; background-color: #f4f7f6; color: #333; line-height: 1.6; }
+        .container { max-width: 90%; margin: 40px auto; padding: 25px; background-color: #fff; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; font-size: 2.2em; }
+
+        /* Mesaj ve tablo stilleri */
+        .flashes { list-style: none; padding: 15px; margin-bottom: 20px; border-radius: 8px; background-color: #e2f0e3; color: #28a745; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-radius: 8px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        th { background-color: #34495e; color: white; text-transform: uppercase; letter-spacing: 0.05em; }
+        tr:nth-child(even) { background-color: #f8f8f8; }
+        tr:hover { background-color: #f1f1f1; }
+
+        /* Düşük güven skoru vurgusu */
+        .low-confidence { background-color: #fff3cd; color: #856404; }
+
+        /* Plaka ve araç görselleri için özel stil */
+        .plate-image, .vehicle-image { width: 150px; height: auto; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .no-image-placeholder { color: #999; font-style: italic; font-size: 0.9em; }
+
+        /* Buton stilleri */
+        .btn { display: inline-block; margin: 10px; padding: 12px 25px; font-weight: 600; text-decoration: none; border: none; border-radius: 7px; cursor: pointer; transition: background-color 0.25s ease, transform 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: white; }
+        .btn:hover { transform: translateY(-2px); }
+        .back-link { background-color: #6c757d; }
+        .back-link:hover { background-color: #5a6268; }
+        .csv-download { background-color: #28a745; }
+        .csv-download:hover { background-color: #218838; }
+        .delete-btn { background-color: #dc3545; }
+        .delete-btn:hover { background-color: #c82333; }
+        .reset-btn { background-color: #ffc107; color: #212529; }
+        .reset-btn:hover { background-color: #e0a800; }
+        .buttons { text-align: center; margin-bottom: 25px; }
+        .buttons form { display: inline-block; margin: 10px; }
+
+        /* Yükleniyor animasyonu */
+        .loading-animation { text-align: center; padding: 50px; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Analiz Sonuçları: {{ video_filename }}</h1>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul class="flashes" role="alert">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% endwith %}
+
+        <div class="buttons">
+            <a href="{{ url_for('upload_file') }}" class="btn back-link" role="button" aria-label="Video yükleme sayfasına dön">Geri Dön</a>
+            <a href="{{ url_for('export_csv', video_id=video_id) }}" class="btn csv-download" role="button" aria-label="Sonuçları CSV olarak indir">CSV İndir</a>
+            <a href="{{ url_for('reset_results', video_id=video_id) }}" class="btn reset-btn" role="button" onclick="return confirm('Bu videoya ait tüm analiz sonuçlarını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!');">
+                Sonuçları Sıfırla
+            </a>
+            <form id="delete-form-{{ video_id }}" action="{{ url_for('delete_video', video_id=video_id) }}" method="post">
+                <button type="submit" class="btn delete-btn" onclick="return confirm('Bu videoyu ve tüm analiz sonuçlarını kalıcı olarak silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!');">
+                    Videoyu Sil
+                </button>
+            </form>
+        </div>
+
+        {% if detections %}
+            <table aria-label="Analiz sonuçları tablosu">
+                <thead>
+                    <tr>
+                        <th>Plaka Görseli</th>
+                        <th>Plaka</th>
+                        <th>Araç Tipi</th>
+                        <th>Güven Skoru</th>
+                        <th>Tespit Zamanı</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detection in detections %}
+                        <tr class="{{ 'low-confidence' if detection[4] < 0.7 else '' }}">
+                            <td>
+                                {% if detection[6] %}
+                                <img src="{{ url_for('plate_output_file', filename=detection[6].replace('static/plate_vehicle_outputs/', '')) }}" 
+                                     alt="Tespit Edilen Plaka: {{ detection[2] }}" 
+                                     class="plate-image">
+                                {% else %}
+                                <span class="no-image-placeholder">Görsel Yok</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('plate_detail', plate_text=detection[2]) }}" class="plate-link">{{ detection[2] }}</a>
+                            </td>
+                            <td>{{ detection[3] }}</td>
+                            <td>{{ "%.2f"|format(detection[4]) }}</td>
+                            <td>{{ detection[5] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="loading-animation" role="alert" aria-live="polite" aria-busy="true">
+                <div class="spinner-wrapper">
+                    <span class="spinner" aria-hidden="true"></span>
+                </div>
+                <p>Analiz devam ediyor veya henüz sonuç bulunamadı...</p>
+                <p>Bu sayfa otomatik olarak güncellenecektir.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const hasDetections = "{{ 'true' if detections else 'false' }}";
+        if (hasDetections === "false") {
+            setTimeout(() => location.reload(), 5000);
+        }
+    });
+    </script>
+</body>
+</html>

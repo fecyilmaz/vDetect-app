@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İletişim</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 20px; opacity: 0; animation: fadeIn 1s forwards; }
+        .container { max-width: 800px; margin: auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        p { color: #666; line-height: 1.6; }
+        .contact-info { margin-top: 20px; font-weight: bold; }
+        .back-link { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; transition: background-color 0.3s; }
+        .back-link:hover { background-color: #5a6268; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>İletişim</h1>
+        <p>Uygulama ile ilgili sorularınız için bizimle iletişime geçebilirsiniz.</p>
+        <div class="contact-info">
+            <p>Email: info@example.com</p>
+            <p>Telefon: +90 #########7</p>
+        </div>
+        <a href="{{ url_for('home') }}" class="back-link">Ana Sayfaya Dön</a>
+    </div>
+</body>
+</html>

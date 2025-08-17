@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <title>ROI Belirle</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; padding: 20px; text-align: center; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .image-container { position: relative; display: inline-block; border: 2px solid #ccc; cursor: crosshair; }
+        #roi_image { max-width: 100%; height: auto; display: block; }
+        .point { position: absolute; width: 12px; height: 12px; background: red; border-radius: 50%; border: 2px solid white; transform: translate(-50%, -50%); pointer-events: none; }
+        .btn { margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; transition: background 0.3s; }
+        .btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>ROI Belirle</h1>
+    <p>Videonun ilk karesi aşağıda. ROI (İlgili Bölge) için en az 3 nokta seçin.</p>
+    <p>Seçilen nokta sayısı: <span id="point-count">0</span></p>
+
+    <div class="image-container" id="image-container" style="position: relative;">
+        <img id="roi_image" src="{{ url_for('static', filename='uploads/' + frame_path) }}" alt="Video İlk Karesi" />
+    </div>
+
+    <button id="save-btn" class="btn" disabled>ROI Noktalarını Kaydet</button>
+</div>
+
+<script>
+    const image = document.getElementById('roi_image');
+    const container = document.getElementById('image-container');
+    const saveBtn = document.getElementById('save-btn');
+    const pointCountSpan = document.getElementById('point-count');
+    const points = [];
+
+    // Tıklama olayını resim yüklendikten sonra ekleyin
+    image.onload = () => {
+        console.log('Resim başarıyla yüklendi. Doğal boyutlar:', image.naturalWidth, image.naturalHeight);
+
+        image.addEventListener('click', (e) => {
+            const rect = image.getBoundingClientRect();
+            
+            // Eğer resim hala geçersizse, işlemi durdur
+            if (rect.width === 0 || rect.height === 0 || image.naturalWidth === 0 || image.naturalHeight === 0) {
+                console.error("Resim boyutları geçersiz. Lütfen sayfayı yenileyin.");
+                alert("Resim yüklenemedi. Lütfen sayfayı yenileyin.");
+                return;
+            }
+
+            // Görüntülenen resim üzerindeki tıklama koordinatları
+            const clientX = e.clientX - rect.left;
+            const clientY = e.clientY - rect.top;
+
+            // Backend için resmin orijinal boyutuna göre koordinatları hesapla
+            const scaleX = image.naturalWidth / rect.width;
+            const scaleY = image.naturalHeight / rect.height;
+
+            const x = Math.round(clientX * scaleX);
+            const y = Math.round(clientY * scaleY);
+
+            points.push([x, y]);
+            pointCountSpan.textContent = points.length;
+
+            // Noktayı görsel olarak doğru yere göster
+            const pointEl = document.createElement('div');
+            pointEl.classList.add('point');
+            pointEl.style.left = clientX + 'px';
+            pointEl.style.top = clientY + 'px';
+            container.appendChild(pointEl);
+
+            if(points.length >= 3) {
+                saveBtn.disabled = false;
+            }
+
+            console.log("Seçilen Nokta:", [x, y]);
+        });
+    };
+    
+    // Resim yüklenemezse hata logu ver
+    image.onerror = () => {
+        console.error("Resim yüklenirken bir hata oluştu.");
+    };
+
+    saveBtn.addEventListener('click', () => {
+        if(points.length < 3) {
+            alert("Lütfen en az 3 nokta seçin.");
+            return;
+        }
+
+        saveBtn.disabled = true;
+
+        fetch("{{ url_for('save_roi', video_id=video_id) }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ points: points })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            window.location.href = "{{ url_for('upload_file') }}";
+        })
+        .catch(err => {
+            alert('ROI noktaları kaydedilirken hata oluştu.');
+            console.error(err);
+            saveBtn.disabled = false;
+        });
+    });
+</script>
+</body>
+</html>
